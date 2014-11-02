@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:jaxws="http://cxf.apache.org/jaxws"
+       xmlns:cxf="http://cxf.apache.org/core" xmlns:context="http://www.springframework.org/schema/context"
+       xmlns:http="http://cxf.apache.org/transports/http/configuration"
+       xmlns:sec="http://cxf.apache.org/configuration/security"
+       xsi:schemaLocation="
+        http://cxf.apache.org/core                   	http://cxf.apache.org/schemas/core.xsd
+        http://cxf.apache.org/jaxws                  	http://cxf.apache.org/schemas/jaxws.xsd
+        http://www.springframework.org/schema/beans    	http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+        http://www.springframework.org/schema/context  	http://www.springframework.org/schema/context/spring-context-3.0.xsd
+        http://cxf.apache.org/transports/http/configuration
+        http://cxf.apache.org/schemas/configuration/http-conf.xsd
+        http://cxf.apache.org/configuration/security
+        http://cxf.apache.org/schemas/configuration/security.xsd">
+
+    <import resource="classpath:META-INF/cxf/cxf.xml" />
+
+    <context:component-scan base-package="it.thomasjohansen" />
+    <context:annotation-config />
+
+    <cxf:bus>
+        <cxf:features>
+            <cxf:logging />
+        </cxf:features>
+    </cxf:bus>
+
+    <jaxws:client id="hello"
+                  serviceName="svc:HelloService"
+                  xmlns:svc="http://thomasjohansen.it/hello"
+                  serviceClass="it.thomasjohansen.hello.Hello"
+                  address="http://localhost:8080/hello/hello"
+                  wsdlLocation="wsdl/hello.wsdl">
+        <jaxws:outInterceptors>
+            <bean class="org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor">
+                <constructor-arg>
+                    <map>
+                        <entry key="action" value="Timestamp UsernameToken"/>
+                        <entry key="user" value="alice"/>
+                        <entry key="passwordType" value="PasswordNone"/>
+                    </map>
+                </constructor-arg>
+            </bean>
+        </jaxws:outInterceptors>
+        <jaxws:properties>
+            <entry key="ws-security.sts.client">
+                <bean class="org.apache.cxf.ws.security.trust.STSClient">
+                    <constructor-arg ref="cxf" />
+                    <property name="wsdlLocation" value="https://sts.thomasjohansen.it:8443/fediz-idp-sts/REALMA/STSServiceTransport?wsdl" />
+                    <property name="serviceName"
+                              value="{http://docs.oasis-open.org/ws-sx/ws-trust/200512/}SecurityTokenService" />
+                    <property name="endpointName"
+                              value="{http://docs.oasis-open.org/ws-sx/ws-trust/200512/}Transport_Port" />
+                    <property name="enableAppliesTo" value="true" />
+                    <property name="properties">
+                        <map>
+                            <entry key="ws-security.username" value="ted"/>
+                            <entry key="ws-security.password" value="det"/>
+                            <entry key="ws-security.encryption.properties" value="crypto.properties"/>
+                            <entry key="ws-security.encryption.username" value="hello-client"/>
+                            <entry key="ws-security.sts.token.properties" value="crypto.properties"/>
+                            <entry key="ws-security.sts.token.username" value="hello-client"/>
+                            <entry key="ws-security.sts.token.usecert" value="true"/>
+
+                            <!--<entry key="ws-security.callback-handler" value="it.thomasjohansen.hello.HelloClientCallbackHandler"/>-->
+                            <!--<entry key="ws-security.signature.properties" value="crypto.properties"/>-->
+                        </map>
+                    </property>
+                </bean>
+            </entry>
+            <entry key="ws-security.cache.issued.token.in.endpoint" value="false" />
+        </jaxws:properties>
+    </jaxws:client>
+
+
+    <!-- TLS settings for TransportBinding test-case -->
+    <!--<http:conduit name="{http://docs.oasis-open.org/ws-sx/ws-trust/200512/}Transport_Port.http-conduit">-->
+        <!--<http:tlsClientParameters disableCNCheck="true">-->
+            <!--<sec:trustManagers>-->
+                <!--<sec:keyStore type="jks" password="waspass" resource="webappKeystore.jks" />-->
+            <!--</sec:trustManagers>-->
+        <!--</http:tlsClientParameters>-->
+    <!--</http:conduit>-->
+
+    <!--  STS WSDL download -->
+    <http:conduit name="https://sts.thomasjohansen.it:8443/.*">
+        <http:tlsClientParameters disableCNCheck="true">
+            <sec:trustManagers>
+                <sec:keyStore type="jks" password="changeit" resource="sts-ssl-trust.jks" />
+            </sec:trustManagers>
+        </http:tlsClientParameters>
+    </http:conduit>
+
+    <!--<http:conduit-->
+            <!--name="{http://apache.org/hello_world_soap_http}GreeterSoapPort.http-conduit">-->
+        <!--<http:tlsClientParameters disableCNCheck="true">-->
+            <!--<sec:trustManagers>-->
+                <!--<sec:keyStore type="jks" password="waspass" resource="webappKeystore.jks" />-->
+            <!--</sec:trustManagers>-->
+        <!--</http:tlsClientParameters>-->
+    <!--</http:conduit>-->
+
+</beans>

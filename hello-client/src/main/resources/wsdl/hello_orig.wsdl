@@ -1,0 +1,156 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one
+  or more contributor license agreements. See the NOTICE file
+  distributed with this work for additional information
+  regarding copyright ownership. The ASF licenses this file
+  to you under the Apache License, Version 2.0 (the
+  "License"); you may not use this file except in compliance
+  with the License. You may obtain a copy of the License at
+ 
+  http://www.apache.org/licenses/LICENSE-2.0
+ 
+  Unless required by applicable law or agreed to in writing,
+  software distributed under the License is distributed on an
+  "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+  KIND, either express or implied. See the License for the
+  specific language governing permissions and limitations
+  under the License.
+-->
+<wsdl:definitions name="Hello" targetNamespace="http://thomasjohansen.it/hello"
+    xmlns="http://schemas.xmlsoap.org/wsdl/" 
+    xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/" 
+    xmlns:tns="http://thomasjohansen.it/hello"
+    xmlns:x1="http://thomasjohansen.it/hello/types"
+    xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
+    xmlns:wsp="http://www.w3.org/ns/ws-policy"
+    xmlns:wsu="http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd"
+    xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702"
+    xmlns:t="http://docs.oasis-open.org/ws-sx/ws-trust/200512"
+    xmlns:wsaw="http://www.w3.org/2005/08/addressing"     
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+
+    <wsdl:types>
+        <schema targetNamespace="http://thomasjohansen.it/hello/types"
+            xmlns="http://www.w3.org/2001/XMLSchema"
+	        xmlns:tns="http://thomasjohansen.it/hello/types"
+            elementFormDefault="qualified">
+            <element name="helloRequest">
+                <complexType>
+                    <sequence>
+                        <element name="requestText" type="string"/>
+                    </sequence>
+                </complexType>
+            </element>
+            <element name="helloResponse">
+                <complexType>
+                    <sequence>
+                        <element name="responseText" type="string"/>
+                    </sequence>
+                </complexType>
+            </element>
+        </schema>
+    </wsdl:types>
+
+    <wsdl:message name="helloRequest">
+        <wsdl:part element="x1:helloRequest" name="request"/>
+    </wsdl:message>
+
+    <wsdl:message name="helloResponse">
+        <wsdl:part element="x1:helloResponse" name="response"/>
+    </wsdl:message>
+    
+    <wsdl:portType name="Hello">
+        <wsdl:operation name="sayHello">
+            <wsdl:input message="tns:helloRequest" name="helloRequest"/>
+            <wsdl:output message="tns:helloResponse" name="helloResponse"/>
+        </wsdl:operation>
+    </wsdl:portType>
+
+    <wsdl:binding name="HelloBinding" type="tns:Hello">
+        <wsp:PolicyReference URI="#BindingTransportSAMLPolicy" />
+        <soap:binding style="document" transport="http://schemas.xmlsoap.org/soap/http"/>
+                <wsdl:operation name="sayHello">
+            <soap:operation soapAction="" style="document"/>
+            <wsdl:input name="helloRequest">
+                <soap:body use="literal"/>
+            </wsdl:input>
+            <wsdl:output name="helloResponse">
+                <soap:body use="literal"/>
+            </wsdl:output>
+        </wsdl:operation>
+    </wsdl:binding>
+
+    <wsdl:service name="HelloService">
+        <wsdl:port binding="tns:HelloBinding" name="HelloPort">
+            <soap:address location="http://localhost:8080/hello/hello"/>
+        </wsdl:port>
+    </wsdl:service>
+    
+    
+     	<wsp:Policy wsu:Id="BindingTransportSAMLPolicy">
+		<wsp:ExactlyOne>
+			<wsp:All>
+				<sp:TransportBinding
+					xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702">
+					<wsp:Policy>
+						<sp:TransportToken>
+							<wsp:Policy>
+								<sp:HttpsToken RequireClientCertificate="false">
+									<wsp:Policy/>
+								</sp:HttpsToken>
+							</wsp:Policy>
+						</sp:TransportToken>
+						<sp:AlgorithmSuite>
+							<wsp:Policy>
+								<sp:TripleDes />
+							</wsp:Policy>
+						</sp:AlgorithmSuite>
+						<sp:Layout>
+							<wsp:Policy>
+								<sp:Lax />
+							</wsp:Policy>
+						</sp:Layout>
+						<sp:IncludeTimestamp />
+					</wsp:Policy>
+				</sp:TransportBinding>
+				<sp:SupportingTokens
+					xmlns:sp="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702">
+					<wsp:Policy>
+						<sp:IssuedToken
+							sp:IncludeToken="http://docs.oasis-open.org/ws-sx/ws-securitypolicy/200702/IncludeToken/AlwaysToRecipient">
+							<sp:RequestSecurityTokenTemplate>
+								<t:TokenType>http://docs.oasis-open.org/wss/oasis-wss-saml-token-profile-1.1#SAMLV2.0</t:TokenType>
+								<t:KeyType>http://docs.oasis-open.org/ws-sx/ws-trust/200512/Bearer</t:KeyType>
+                                <!--<t:KeyType>http://docs.oasis-open.org/ws-sx/ws-trust/200512/PublicKey</t:KeyType>-->
+                            </sp:RequestSecurityTokenTemplate>
+							<wsp:Policy>
+								<sp:RequireInternalReference />
+							</wsp:Policy>
+							<sp:Issuer>
+								<wsaw:Address>http://localhost:8080/DoubleItSTS/DoubleItSTSServiceUT
+								</wsaw:Address>
+							</sp:Issuer>
+						</sp:IssuedToken>
+					</wsp:Policy>
+				</sp:SupportingTokens>
+				<sp:Wss11>
+					<wsp:Policy>
+						<sp:MustSupportRefIssuerSerial />
+						<sp:MustSupportRefThumbprint />
+						<sp:MustSupportRefEncryptedKey />
+					</wsp:Policy>
+				</sp:Wss11>
+				<sp:Trust13>
+					<wsp:Policy>
+						<sp:MustSupportIssuedTokens />
+						<sp:RequireClientEntropy />
+						<sp:RequireServerEntropy />
+					</wsp:Policy>
+				</sp:Trust13>
+			</wsp:All>
+		</wsp:ExactlyOne>
+	</wsp:Policy>
+
+</wsdl:definitions>
+
